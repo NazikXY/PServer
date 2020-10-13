@@ -5,7 +5,7 @@ import sqlite3 as sq
 
 app = Flask(__name__)
 api = Api(app)
-db = sq.connect('../V1/bot.db', check_same_thread=False)
+db = sq.connect('../PBot/bot.db', check_same_thread=False)
 
 
 class Server(Resource):
