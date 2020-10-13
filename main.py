@@ -15,7 +15,10 @@ class Server(Resource):
 
 class GetCurrentOrder(Resource):
     def get(self):
-        data = db.cursor().execute('SELECT * FROM "' + 'order_'+str(datetime.today().date())+'"').fetchall()
+        today = str(datetime.today().date())
+        data = db.cursor().execute('SELECT goods.name, "' + 'order_' + today +
+                                   '".count FROM goods JOIN "' + today +
+                                   '" ON goods.gid == "' + today + '".goods_id').fetchall()
         return {'data': data}
 
 
