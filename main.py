@@ -13,6 +13,7 @@ class Server(Resource):
         # return {'data': str(db.cursor().execute("SELECT * FROM goods").fetchall())}
         return {'data': "Podushechnaya Server"}
 
+
 class GetCurrentOrder(Resource):
     def get(self):
         today = str(datetime.today().date())
@@ -22,8 +23,16 @@ class GetCurrentOrder(Resource):
         return {'data': data}
 
 
+class GetHistory(Resource):
+    def get(self):
+        data = db.cursor().execute('SELECT time FROM history')
+
+        return {'data': data}
+
+
 api.add_resource(Server, '/')
 api.add_resource(GetCurrentOrder, '/get_current_order/')
+api.add_resource(GetHistory, '/get_history')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port='80')
