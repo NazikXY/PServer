@@ -1,6 +1,8 @@
 from flask import Flask
 from flask_restful import Resource, Api
 from datetime import datetime
+
+
 import json
 import sqlite3 as sq
 
@@ -39,8 +41,9 @@ class GetOrdersSequence(Resource):
         for full_order in data:
             order = json.loads(full_order[2])
             for item in order:
-                new_order_list.append([goods_dict[str(item[0])], item[1]])
-            result.append({"id": full_order[0], "name": full_order[1], "goods_list": new_order_list})
+                new_order_list.append({"item": goods_dict[str(item[0])], "count":item[1]})
+            result.append({"id": full_order[0], "name": full_order[1], "goods_list": new_order_list.copy()})
+            new_order_list.clear()
 
         return {'data': result}
 
@@ -51,4 +54,5 @@ api.add_resource(GetOrdersSequence, '/get_orders_sequence')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port='80')
+#ssl_context=('cert.pem', 'key.pem')
 
