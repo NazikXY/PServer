@@ -27,13 +27,13 @@ class GetCurrentOrder(Resource):
 class GetOrdersSequence(Resource):
     def get(self):
         data = db.cursor().execute('SELECT * FROM history').fetchall()
-        goods = db.cursor().execute('SELECT gid, name FROM goods').fetchall()
+        goods = db.cursor().execute('SELECT gid, name, units FROM goods').fetchall()
         goods_dict = dict()
-        print(data)
+        # print(data)
         for i in goods:
-            goods_dict[str(i[0])] = i[1]
+            goods_dict[str(i[0])] = {str(i[1]), str(i[2])}
         new_data = []
-        print(goods_dict)
+        # print(goods_dict)
         a = json.loads(data[0][2])
 
         for i in a:
