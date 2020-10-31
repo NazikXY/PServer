@@ -33,15 +33,16 @@ class GetOrdersSequence(Resource):
         for i in goods:
             goods_dict[str(i[0])] = {"name": str(i[1]), "units": str(i[2])}
         new_order_list = []
+        result = list()
 
         # print(goods_dict)
-        for i in data:
-            order = json.loads(i[2])
+        for full_order in data:
+            order = json.loads(full_order[2])
             for item in order:
                 new_order_list.append([goods_dict[str(item[0])], item[1]])
-            data.append({"id": data[0][0], "name": data[0][1], "orders_list": new_order_list})
+            result.append({"id": full_order[0], "name": full_order[1], "goods_list": new_order_list})
 
-        return {'data': data}
+        return {'data': result}
 
 
 api.add_resource(Server, '/')
