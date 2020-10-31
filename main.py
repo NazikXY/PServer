@@ -38,7 +38,7 @@ class GetOrdersSequence(Resource):
 
         for i in a:
             new_data.append([goods_dict[str(i[0])], i[1]])
-        data = (data[0][0], data[0][1], new_data)
+        data = {"id": data[0][0], "name":data[0][1], "orders_list": new_data}
 
         return {'data': data}
 
