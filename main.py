@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 from datetime import datetime
 
 
@@ -9,6 +9,9 @@ import sqlite3 as sq
 app = Flask(__name__)
 api = Api(app)
 db = sq.connect('../PBot/bot.db', check_same_thread=False)
+
+parser = reqparse.RequestParser()
+parser.add_argument("data")
 
 
 class Server(Resource):
@@ -47,10 +50,29 @@ class GetOrdersSequence(Resource):
 
         return {'data': result}
 
+class ReceiveOrder(Resource):
+    def post(self):
+        args = parser.parse_args()
+        res = json.loads(args['data'])
+        print(res)
+        print("first")
+        db.cursor().execute(
+            'INSERT INTO completed_orders (id, name, fullPrice, order_list) VALUES ({}, {}, {}, {})'.format(res['id'],
+                                                                                                            '"' + str(res['name']) + '"',
+                                                                                                            res['fullPrice'],
+                                                                                                            '"' + str(res['order']) + '"'
+                                                                                                            )
+                            )
+        db.commit()
+        print("second")
+        # db.cursor().execute('DELETE FROM "history" WHERE id == {}'.format(res['id']))
+        return 200
+
 
 api.add_resource(Server, '/')
 api.add_resource(GetCurrentOrder, '/get_current_order/')
 api.add_resource(GetOrdersSequence, '/get_orders_sequence')
+api.add_resource(ReceiveOrder, '/send_completed_order')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port='80')
