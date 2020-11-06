@@ -65,7 +65,8 @@ class ReceiveOrder(Resource):
                             )
         db.commit()
         print("second")
-        # db.cursor().execute('DELETE FROM "history" WHERE id == {}'.format(res['id']))
+        db.cursor().execute('DELETE FROM "history" WHERE order_id == {}'.format(res['id']))
+        db.commit()
         return 200
 
 
@@ -75,6 +76,6 @@ api.add_resource(GetOrdersSequence, '/get_orders_sequence')
 api.add_resource(ReceiveOrder, '/send_completed_order')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port='80')
+    app.run(debug=False, host='0.0.0.0', port='80')
 #ssl_context=('cert.pem', 'key.pem')
 
