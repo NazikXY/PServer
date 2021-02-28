@@ -45,8 +45,8 @@ class GetProducts(Resource):
     def get(self):
         _parser = reqparse.RequestParser()
         _parser.add_argument('id')
-        id = _parser.parse_args()['id']
-        req_str = 'SELECT * FROM "products"' + (f' WHERE "category" == {id}' if id is not None else "")
+        cid = _parser.parse_args()['id']
+        req_str = 'SELECT * FROM "products"' + (f' WHERE "category" == {cid}' if cid is not None else "")
         db_products = db.cursor().execute(req_str).fetchall()
         result = []
         for i in db_products:
@@ -55,7 +55,7 @@ class GetProducts(Resource):
             tmp_dict['name'] = i[1]
             tmp_dict['units'] = i[2]
             tmp_dict['category'] = i[3]
-            tmp_dict['imageUri'] = i[4]
+            tmp_dict['imageURI'] = i[4]
             result.append(tmp_dict)
 
         return result
@@ -115,19 +115,16 @@ class GetOrders(Resource):
         args = parser.parse_args()
 
         db_user_orders = db.cursor().execute(f'SELECT * FROM "orders" WHERE "target" == "{args["data"]}"').fetchall()
-        db_products_list = db.cursor().execute(f'SELECT * FROM "products"').fetchall()
-
-        data_products = DataFrame(db_products_list, columns=['id', 'name', 'units', 'category', 'imageURI'])
-        data_products = data_products.set_index('id')
 
         full_product_list = []
 
         for order in db_user_orders:
             products_string = order[3]
             products_list = json.loads(products_string.replace("'", '"'))
-            full_product_list.append([{'count': item['count'], 'product': json.loads(((data_products.loc[item['id']]).to_json()))} for item in products_list])
+            # , 'product': json.loads(((data_products.loc[item['id']]).to_json()))}
+            full_product_list.append([{'count': item['count'], 'id': item['id'] }for item in products_list])
         dicts_list = [{'id': item[0], 'name': item[1], 'place': item[2],
-                       'positionList': full_product_list[index],
+                       'miniPositionList': full_product_list[index],
                        'comment': item[5]} for index, item in enumerate(db_user_orders)]
         return dicts_list
 
