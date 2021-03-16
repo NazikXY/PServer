@@ -1,12 +1,16 @@
 from json.decoder import JSONDecodeError
 from pprint import pprint
 
-from flask import Flask
+from flask import Flask, send_file, safe_join
 from flask_restful import Resource, Api, reqparse
 from pandas import DataFrame
 from datetime import datetime
 import json
 import sqlite3 as sq
+import  os
+
+
+import werkzeug
 
 app = Flask(__name__)
 api = Api(app)
@@ -56,6 +60,7 @@ class GetProducts(Resource):
             tmp_dict['units'] = i[2]
             tmp_dict['category'] = i[3]
             tmp_dict['imageURI'] = i[4]
+            tmp_dict['emoji'] = i[5]
             result.append(tmp_dict)
 
         return result
@@ -79,6 +84,7 @@ class GetCategories(Resource):
                 tmp_dicti['units'] = a[2]
                 tmp_dicti['category'] = a[3]
                 tmp_dicti['imageURI'] = a[4]
+                tmp_dicti['emoji'] = a[5]
                 resulti.append(tmp_dicti)
             tmp_dict['productList'] = resulti
             result.append(tmp_dict)
@@ -115,17 +121,24 @@ class GetOrders(Resource):
         args = parser.parse_args()
 
         db_user_orders = db.cursor().execute(f'SELECT * FROM "orders" WHERE "target" == "{args["data"]}"').fetchall()
-
         full_product_list = []
 
         for order in db_user_orders:
-            products_string = order[3]
+            products_string = order[4]
             products_list = json.loads(products_string.replace("'", '"'))
             # , 'product': json.loads(((data_products.loc[item['id']]).to_json()))}
             full_product_list.append([{'count': item['count'], 'id': item['id'] }for item in products_list])
-        dicts_list = [{'id': item[0], 'name': item[1], 'place': item[2],
-                       'miniPositionList': full_product_list[index],
-                       'comment': item[5]} for index, item in enumerate(db_user_orders)]
+
+        dicts_list = [{
+            'id': item[0],
+            'name': item[1],
+            'date': item[2],
+            'place': item[3],
+            'miniPositionList': full_product_list[index],
+            "target": int(args["data"]),
+            'comment': item[6],
+            'customer':item[7]
+        } for index, item in enumerate(db_user_orders)]
         return dicts_list
 
     def post(self):
@@ -158,10 +171,39 @@ class RegUser(Resource):
 
 class SendOrder(Resource):
     def post(self):
+        parser.add_argument("completed")
         arg = parser.parse_args()
-        data = json.loads(arg.get('data').replace("'", '"'))
-        # jorder = json.dumps(data['order'])
-        db.cursor().execute('INSERT INTO "orders" ("name", "place", "order", "target", "comment") VALUES ("{}", "{}", "{}", "{}", "{}")'.format(data['name'], data['place'], data['order'], data['target'], data['comment']))
+        data = json.loads(arg['data'].replace("'", '"'))
+        completed = {'True': True, 'False': False}[arg['completed']]
+        if not completed:
+            # jorder = json.dumps(data['order'])
+            db.cursor().execute(
+                'INSERT INTO "orders" ("name", "date", "place", "order", "target", "comment", "customer") '
+                'VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(data['name'],
+                                                                           datetime.now(),
+                                                                           data['place'],
+                                                                           data['order'],
+                                                                           data['target'],
+                                                                           data['comment'],
+                                                                           data['customer']
+                                                                           ))
+        else:
+            db.cursor().execute(
+                'INSERT INTO "completed_orders" ("order_id", "name", "place", "create_date","complete_date",'
+                ' "customer", "buyer", "order", "full_price", "comment") '
+                'VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(
+                    data['order_id'],
+                    data['name'],
+                    data['place'],
+                    data['date'],
+                    datetime.now(),
+                    data['customer'],
+                    data['buyer'],
+                    data['order'],
+                    data['full_price'],
+                    data['comment'],
+                    ))
+            db.cursor().execute(f'DELETE FROM "orders" WHERE "id" == {data["order_id"]}')
         db.commit()
         return 1
 
@@ -198,12 +240,41 @@ class SignIn(Resource):
                 "role": result[4]}
 
 
+class UploadImage(Resource):
+    def post(self):
+        parse = reqparse.RequestParser()
+        parse.add_argument('file', type=werkzeug.datastructures.FileStorage, location='images')
+        args = parse.parse_args()
+        print(args)
+        image_file = args['file']
+        image_file.save("your_file_name.jpg")
+
+
+@api.representation('application/octet-stream')
+def output_file(data, code, headers):
+    filepath = safe_join(data["directory"], data["filename"])
+
+    response = send_file(
+        filename_or_fp=filepath,
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        attachment_filename=data["filename"]
+    )
+    return response
+
+
+class GetFile(Resource):
+    def get(self, filename):
+        return {"directory": os.path.join("images"), "filename": filename}
+
 
 
 api.add_resource(Server, '/')
+api.add_resource(UploadImage, '/upload')
+api.add_resource(GetFile, '/get_image/<string:filename>')
 # api.add_resource(GetOrdersSequence, '/get_orders_sequence')
-api.add_resource(GetUser,       '/get_all_users/')
-api.add_resource(GetProducts,   '/get_all_products/')
+api.add_resource(GetUser,       '/get_all_users')
+api.add_resource(GetProducts,   '/get_all_products')
 api.add_resource(GetCategories, '/get_categories')
 api.add_resource(GetPlaces,     '/get_places')
 api.add_resource(GetRoles,      '/get_roles')
